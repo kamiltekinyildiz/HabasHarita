@@ -159,7 +159,6 @@
                 el.style.backgroundSize = 'cover';
                 el.style.cursor = 'pointer';
 
-                const marker = new maplibregl.Marker({element: el}).setLngLat([loc.lng, loc.lat]).addTo(map);
                 const mapsLink = `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`;
                 
                 let popupHtml = `
@@ -173,11 +172,7 @@
                 popupHtml += `</div>`;
 
                 const popup = new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml);
-                marker.setPopup(popup);
-
-                el.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                });
+                const marker = new maplibregl.Marker({element: el}).setLngLat([loc.lng, loc.lat]).setPopup(popup).addTo(map);
 
                 markers.push({ id: loc.id, name: loc.name, marker: marker });
             });
