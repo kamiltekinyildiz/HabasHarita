@@ -109,13 +109,19 @@
             style: {
                 'version': 8,
                 'sources': {
-                    'esri-satellite': {
+                    'google-satellite': {
                         'type': 'raster',
-                        'tiles': ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-                        'tileSize': 256
+                        'tiles': [
+                            'https://mt0.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                            'https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                            'https://mt2.google.com/vt/lyrs=s&x={x}&y={y}&z={z}',
+                            'https://mt3.google.com/vt/lyrs=s&x={x}&y={y}&z={z}'
+                        ],
+                        'tileSize': 256,
+                        'attribution': '© Google Maps'
                     }
                 },
-                'layers': [{ 'id': 'satellite', 'type': 'raster', 'source': 'esri-satellite', 'minzoom': 0, 'maxzoom': 22 }]
+                'layers': [{ 'id': 'satellite', 'type': 'raster', 'source': 'google-satellite', 'minzoom': 0, 'maxzoom': 22 }]
             },
             center: [26.9450, 38.7480],
             zoom: 16,
