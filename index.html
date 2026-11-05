@@ -175,7 +175,6 @@
                 const popup = new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml);
                 marker.setPopup(popup);
 
-                // Pinin üzerine tıklandığında haritanın arkadaki tıklama olayını tetiklemesini engelle
                 el.addEventListener('click', (e) => {
                     e.stopPropagation();
                 });
@@ -202,7 +201,6 @@
         };
 
         document.getElementById('search-input').addEventListener('input', (e) => {
-            .
             const query = e.target.value.toLowerCase();
             const found = currentLocations.find(loc => loc.name.toLowerCase().includes(query));
             if (found && query.length > 2) {
@@ -211,5 +209,4 @@
         });
     </script>
 </body>
-    </html>
-    
+</html>
