@@ -24,8 +24,7 @@
         .btn-secondary { width: 100%; background: #e0e0e0; color: #333; padding: 12px; border: none; border-radius: 6px; font-size: 16px; }
         .popup-btn { display: block; width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; box-sizing: border-box; }
         .popup-go { background: #1a73e8; color: white; }
-        .popup-delete { background: #dc3545; color: white; display: none; }
-        .admin-mode .popup-delete { display: block; }
+        .popup-delete { background: #dc3545; color: white; }
     </style>
 </head>
 <body>
@@ -100,7 +99,7 @@
                 loginModal.classList.remove('active');
                 document.getElementById('email-input').value = "";
                 document.getElementById('pass-input').value = "";
-                alert("Giriş Başarılı! Artık haritada boş bir yere tıklayarak yer ekleyebilir, mevcut yerleri silebilirsin.");
+                alert("Giriş Başarılı! Artık silme butonları aktif.");
                 renderMarkers(currentLocations);
             } else { alert("Hatalı E-posta veya Şifre!"); }
         });
@@ -150,7 +149,7 @@
         });
 
         function renderMarkers(locations) {
-            markers.forEach(m => m.remove());
+            markers.forEach(m => m.marker.remove());
             markers = [];
             locations.forEach(loc => {
                 const el = document.createElement('div');
@@ -162,15 +161,25 @@
 
                 const marker = new maplibregl.Marker({element: el}).setLngLat([loc.lng, loc.lat]).addTo(map);
                 const mapsLink = `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`;
-                const popupHtml = `
+                
+                let popupHtml = `
                     <div style="text-align:center; padding:5px;">
                         <h4 style="margin: 0 0 10px 0; font-size:16px;">${loc.name}</h4>
                         <a href="${mapsLink}" class="popup-btn popup-go">📍 Yol Tarifi Al (Git)</a>
-                        ${isAdmin ? `<button class="popup-btn popup-delete" onclick="window.deletePin('${loc.id}')">🗑️ Sil</button>` : ''}
-                    </div>
                 `;
+                if(isAdmin) {
+                    popupHtml += `<button class="popup-btn popup-delete" onclick="window.deletePin('${loc.id}')">🗑️ Sil</button>`;
+                }
+                popupHtml += `</div>`;
+
                 const popup = new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml);
                 marker.setPopup(popup);
+
+                // Pinin üzerine tıklandığında haritanın arkadaki tıklama olayını tetiklemesini engelle
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                });
+
                 markers.push({ id: loc.id, name: loc.name, marker: marker });
             });
         }
@@ -193,6 +202,7 @@
         };
 
         document.getElementById('search-input').addEventListener('input', (e) => {
+            .
             const query = e.target.value.toLowerCase();
             const found = currentLocations.find(loc => loc.name.toLowerCase().includes(query));
             if (found && query.length > 2) {
@@ -201,4 +211,5 @@
         });
     </script>
 </body>
-</html>
+    </html>
+    
