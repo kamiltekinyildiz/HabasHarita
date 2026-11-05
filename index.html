@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>HABAŞ Navigasyon - Bulut</title>
+    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <style>
+        body { margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; overflow: hidden; background-color: #f5f5f5; }
+        #map { position: absolute; top: 0; bottom: 0; width: 100%; z-index: 1; }
+        #top-bar { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; display: flex; z-index: 1000; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        #search-input { flex-grow: 1; padding: 14px 15px; border: none; border-radius: 8px 0 0 8px; font-size: 16px; outline: none; }
+        #menu-btn { background: none; border: none; border-left: 1px solid #eee; padding: 0 15px; font-size: 24px; font-weight: bold; color: #555; cursor: pointer; border-radius: 0 8px 8px 0; }
+        #dropdown-menu { position: absolute; top: 75px; right: 5%; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 1000; display: none; flex-direction: column; overflow: hidden; }
+        #dropdown-menu.active { display: flex; }
+        #dropdown-menu button { padding: 15px 20px; background: none; border: none; font-size: 16px; text-align: left; cursor: pointer; color: #333; }
+        #dropdown-menu button:hover { background-color: #f0f0f0; }
+        #login-modal { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; }
+        #login-modal.active { display: flex; }
+        .modal-content { background: white; padding: 25px; border-radius: 12px; width: 85%; max-width: 320px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .modal-content h3 { margin-top: 0; color: #1a73e8; }
+        .modal-content input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 16px; }
+        .btn-primary { width: 100%; background: #1a73e8; color: white; padding: 12px; border: none; border-radius: 6px; font-size: 16px; margin-bottom: 10px; font-weight: bold; }
+        .btn-secondary { width: 100%; background: #e0e0e0; color: #333; padding: 12px; border: none; border-radius: 6px; font-size: 16px; }
+        .popup-btn { display: block; width: 100%; padding: 12px; margin-top: 8px; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; box-sizing: border-box; }
+        .popup-go { background: #1a73e8; color: white; }
+        .popup-delete { background: #dc3545; color: white; display: none; }
+        .admin-mode .popup-delete { display: block; }
+    </style>
+</head>
+<body>
+    <div id="top-bar">
+        <input type="text" id="search-input" placeholder="Bölüm ara (Örn: Çelikhane)...">
+        <button id="menu-btn">⋮</button>
+    </div>
+    <div id="dropdown-menu">
+        <button id="auth-toggle-btn">Yetkili Girişi</button>
+    </div>
+    <div id="login-modal">
+        <div class="modal-content">
+            <h3>Yetkili Girişi</h3>
+            <p style="font-size: 14px; color: #666;">Haritaya yer eklemek/silmek için giriş yapın.</p>
+            <input type="email" id="email-input" placeholder="E-posta Adresi">
+            <input type="password" id="pass-input" placeholder="Şifre">
+            <button class="btn-primary" id="submit-login">Giriş Yap</button>
+            <button class="btn-secondary" id="close-modal">İptal</button>
+        </div>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, remove, push } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyDrWXMQRR74_B5faBNijiT1zXfYHA-MWtM",
+          authDomain: "habas-navigasyon.firebaseapp.com",
+          databaseURL: "https://habas-navigasyon-default-rtdb.europe-west1.firebasedatabase.app",
+          projectId: "habas-navigasyon",
+          storageBucket: "habas-navigasyon.firebasestorage.app",
+          messagingSenderId: "1096725065152",
+          appId: "1:1096725065152:web:f30a0e53b7adb2683f2c25"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        const ADMIN_EMAIL = "kamiltekinyildiz@gmail.com";
+        const ADMIN_PASS_HASH = "MjUzNTI1S3Q=";
+        let isAdmin = false;
+
+        const menuBtn = document.getElementById('menu-btn');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        const authToggleBtn = document.getElementById('auth-toggle-btn');
+        const loginModal = document.getElementById('login-modal');
+        const submitLoginBtn = document.getElementById('submit-login');
+        const closeModalBtn = document.getElementById('close-modal');
+
+        menuBtn.addEventListener('click', () => { dropdownMenu.classList.toggle('active'); });
+        authToggleBtn.addEventListener('click', () => {
+            dropdownMenu.classList.remove('active');
+            if(isAdmin) {
+                isAdmin = false;
+                document.body.classList.remove('admin-mode');
+                authToggleBtn.innerText = "Yetkili Girişi";
+                alert("Çıkış yapıldı.");
+                renderMarkers(currentLocations);
+            } else { loginModal.classList.add('active'); }
+        });
+        closeModalBtn.addEventListener('click', () => { loginModal.classList.remove('active'); });
+
+        submitLoginBtn.addEventListener('click', () => {
+            const email = document.getElementById('email-input').value.trim();
+            const pass = document.getElementById('pass-input').value.trim();
+            if(email === ADMIN_EMAIL && btoa(pass) === ADMIN_PASS_HASH) {
+                isAdmin = true;
+                document.body.classList.add('admin-mode');
+                authToggleBtn.innerText = "Yetkili (Çıkış Yap)";
+                loginModal.classList.remove('active');
+                document.getElementById('email-input').value = "";
+                document.getElementById('pass-input').value = "";
+                alert("Giriş Başarılı! Artık haritada boş bir yere tıklayarak yer ekleyebilir, mevcut yerleri silebilirsin.");
+                renderMarkers(currentLocations);
+            } else { alert("Hatalı E-posta veya Şifre!"); }
+        });
+
+        const map = new maplibregl.Map({
+            container: 'map',
+            style: {
+                'version': 8,
+                'sources': {
+                    'esri-satellite': {
+                        'type': 'raster',
+                        'tiles': ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
+                        'tileSize': 256
+                    }
+                },
+                'layers': [{ 'id': 'satellite', 'type': 'raster', 'source': 'esri-satellite', 'minzoom': 0, 'maxzoom': 22 }]
+            },
+            center: [26.9450, 38.7480],
+            zoom: 16,
+            pitch: 45,
+            bearing: 0
+        });
+
+        map.addControl(new maplibregl.NavigationControl());
+
+        let markers = [];
+        let currentLocations = [];
+
+        const dbRef = ref(db, 'habas_locations');
+        onValue(dbRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                currentLocations = Object.keys(data).map(key => ({ id: key, ...data[key] }));
+            } else {
+                currentLocations = [
+                    { name: "Soğuk Hadde Faz-1", lat: 38.7490, lng: 26.9440 },
+                    { name: "Çelikhane Şantiye Alanı", lat: 38.7470, lng: 26.9430 },
+                    { name: "GİS Alanı", lat: 38.7460, lng: 26.9470 },
+                    { name: "TEİAŞ", lat: 38.7475, lng: 26.9485 }
+                ];
+                currentLocations.forEach(loc => {
+                    const newRef = push(dbRef);
+                    set(newRef, loc);
+                });
+            }
+            renderMarkers(currentLocations);
+        });
+
+        function renderMarkers(locations) {
+            markers.forEach(m => m.remove());
+            markers = [];
+            locations.forEach(loc => {
+                const el = document.createElement('div');
+                el.style.backgroundImage = 'url(https://maps.google.com/mapfiles/ms/icons/red-dot.png)';
+                el.style.width = '32px';
+                el.style.height = '32px';
+                el.style.backgroundSize = 'cover';
+                el.style.cursor = 'pointer';
+
+                const marker = new maplibregl.Marker({element: el}).setLngLat([loc.lng, loc.lat]).addTo(map);
+                const mapsLink = `https://www.google.com/maps/dir/?api=1&destination=${loc.lat},${loc.lng}`;
+                const popupHtml = `
+                    <div style="text-align:center; padding:5px;">
+                        <h4 style="margin: 0 0 10px 0; font-size:16px;">${loc.name}</h4>
+                        <a href="${mapsLink}" class="popup-btn popup-go">📍 Yol Tarifi Al (Git)</a>
+                        ${isAdmin ? `<button class="popup-btn popup-delete" onclick="window.deletePin('${loc.id}')">🗑️ Sil</button>` : ''}
+                    </div>
+                `;
+                const popup = new maplibregl.Popup({ offset: 25 }).setHTML(popupHtml);
+                marker.setPopup(popup);
+                markers.push({ id: loc.id, name: loc.name, marker: marker });
+            });
+        }
+
+        map.on('click', (e) => {
+            if (!isAdmin) return;
+            const locName = prompt("Buraya eklemek istediğiniz bölümün adını yazın:");
+            if (locName && locName.trim() !== "") {
+                const newRef = push(dbRef);
+                set(newRef, { name: locName.trim(), lat: e.lngLat.lat, lng: e.lngLat.lng });
+            }
+        });
+
+        window.deletePin = function(id) {
+            if(!isAdmin) return;
+            if(confirm("Bu konumu silmek istediğinize emin misiniz?")) {
+                const pinRef = ref(db, 'habas_locations/' + id);
+                remove(pinRef);
+            }
+        };
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            const found = currentLocations.find(loc => loc.name.toLowerCase().includes(query));
+            if (found && query.length > 2) {
+                map.flyTo({ center: [found.lng, found.lat], zoom: 18 });
+            }
+        });
+    </script>
+</body>
+</html>
