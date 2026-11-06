@@ -13,7 +13,6 @@
         #search-input { flex-grow: 1; padding: 14px 15px; border: none; border-radius: 8px 0 0 8px; font-size: 16px; outline: none; }
         #menu-btn { background: none; border: none; border-left: 1px solid #eee; padding: 0 15px; font-size: 24px; font-weight: bold; color: #555; cursor: pointer; border-radius: 0 8px 8px 0; }
         
-        /* Arama Öneri Listesi Stili */
         #search-suggestions { position: absolute; top: 55px; left: 0; width: 100%; background: white; border-radius: 0 0 8px 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.2); max-height: 200px; overflow-y: auto; display: none; z-index: 1001; }
         .suggestion-item { padding: 12px 15px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 15px; color: #333; text-align: left; }
         .suggestion-item:hover { background-color: #f0f0f0; }
@@ -135,8 +134,8 @@
                 },
                 'layers': [{ 'id': 'satellite', 'type': 'raster', 'source': 'google-satellite', 'minzoom': 0, 'maxzoom': 22 }]
             },
-            center: [26.9450, 38.7480],
-            zoom: 16,
+            center: [26.950391, 38.735236], // Gönderdiğin yeni Google Maps koordinatı
+            zoom: 17,
             pitch: 45,
             bearing: 0
         });
@@ -213,7 +212,6 @@
             }
         };
 
-        // Otomatik Listeleme ve Arama Mantığı
         const searchInput = document.getElementById('search-input');
         const suggestionsBox = document.getElementById('search-suggestions');
 
@@ -239,7 +237,6 @@
                         suggestionsBox.style.display = 'none';
                         map.flyTo({ center: [loc.lng, loc.lat], zoom: 18 });
                         
-                        // İlgili pinin popup'ını aç
                         const targetMarker = markers.find(m => m.id === loc.id);
                         if (targetMarker) {
                             targetMarker.marker.togglePopup();
@@ -252,10 +249,10 @@
             }
         });
 
-        // Haritada herhangi bir yere tıklandığında öneri kutusunu kapat
         map.on('click', () => {
             suggestionsBox.style.display = 'none';
         });
     </script>
 </body>
-</html>
+    </html>
+    
